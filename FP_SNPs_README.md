@@ -42,11 +42,11 @@ project/
             ├── chr2.fa.fai
             └── ...
 ```
-Для начала создадим индексы c помощью samtools
+Пример команды для создания индексов с помощью samtools:
 ```bash
 samtools faidx GRCh38.d1.vd1.fa
 ```
-далее извлечем хромосомы:
+Пример команды для извлечения хромосом:
 
 ```bash
 for chr in {1..22} M X Y; do
@@ -54,7 +54,7 @@ for chr in {1..22} M X Y; do
 done
 ```
 
-для индексации хромосом: 
+Пример команды для индексации хромосом: 
 ```bash
 for chr in {1..22} M X Y; do
     samtools faidx chr$chr.fa

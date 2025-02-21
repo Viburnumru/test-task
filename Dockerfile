@@ -1,7 +1,8 @@
 # Используем официальный образ Ubuntu 22.04
 FROM ubuntu:22.04
 
-# Установка общих пакетов
+ENV SOFT="/soft"
+
 RUN apt update && apt install -y \
     coreutils \
     build-essential \
@@ -73,9 +74,12 @@ RUN rm -rf /var/lib/apt/lists/*
 
 ENV PATH="/soft/libdeflate-1.23/bin:/soft/samtools-1.21/bin:/soft/bcftools-1.18/bin:/soft/vcftools-0.1.16/bin:$PATH"
 
+ENV SAMTOOLS="${SOFT}/samtools-1.21/bin/samtools"
+ENV BCFTOOLS="${SOFT}/bcftools-1.18/bin/bcftools"
+ENV VCFTOOLS="${SOFT}/vcftools-0.1.16/bin/vcftools"
 
-ENV SAMTOOLS="/soft/samtools-1.21/bin/samtools"
-ENV BCFTOOLS="/soft/bcftools-1.18/bin/bcftools"
-ENV VCFTOOLS="/soft/vcftools-0.1.16/bin/vcftools"
+
+
+
 WORKDIR /soft
 CMD ["bash"]

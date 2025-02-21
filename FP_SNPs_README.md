@@ -26,7 +26,22 @@ awk 'BEGIN {OFS="\t"; print "#CHROM", "POS", "ID", "allele1", "allele2"}
 
 
 ## Подготовка референсного генома
-
+Структура репозитория должна соответствовать
+```
+project/
+├── convert_format.py
+├── examples/
+│   ├── FP_SNP_Converted.tsv
+│   └── FP_SNP_Converted_output.tsv
+└── ref/
+    └── GRCh38.d1.vd1_mainChr/
+        └── sepChrs/
+            ├── chr1.fa
+            ├── chr1.fa.fai
+            ├── chr2.fa
+            ├── chr2.fa.fai
+            └── ...
+```
 Для начала создадим индексы c помощью samtools
 ```bash
 samtools faidx GRCh38.d1.vd1.fa

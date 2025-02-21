@@ -27,60 +27,55 @@ RUN apt update && apt install -y \
     python3-pip && \
     rm -rf /var/lib/apt/lists/*
 
-# Установка libdeflate v1.18
-RUN wget https://github.com/ebiggers/libdeflate/archive/refs/tags/v1.18.tar.gz && \
-    echo "Downloaded libdeflate v1.18.tar.gz" && \
-    tar -xzf v1.18.tar.gz && \
-    cd libdeflate-1.18 && \
-    mkdir build && \
-    cd build && \
-    cmake .. && \
-    make -j4 && \
-    make install PREFIX=/soft/libdeflate-1.18 && \
-    rm -rf /soft/v1.18.tar.gz /soft/libdeflate-1.18
+# Установка libdeflate v1.23
+RUN wget https://github.com/ebiggers/libdeflate/archive/refs/tags/v1.23.tar.gz && \
+    tar -xzf v1.23.tar.gz && \
+    cd libdeflate-1.23 && \
+    mkdir build && cd build && \
+    cmake .. && make -j$(nproc) && \
+    make DESTDIR=/soft/libdeflate-1.23 install && \ 
+    rm -rf /v1.23.tar.gz /libdeflate-1.23
 
-# Установка samtools v1.16.1
-RUN wget https://github.com/samtools/samtools/releases/download/1.16.1/samtools-1.16.1.tar.bz2 && \
-    echo "Downloaded samtools v1.16.1" && \
-    tar -xjf samtools-1.16.1.tar.bz2 && \
-    cd samtools-1.16.1 && \
-    make -j4 && \
-    make install PREFIX=/soft/samtools-1.16.1 && \
-    rm -rf /soft/samtools-1.16.1.tar.bz2 /soft/samtools-1.16.1
 
-# Установка bcftools v1.16
-RUN wget https://github.com/samtools/bcftools/releases/download/1.16/bcftools-1.16.tar.bz2 && \
-    echo "Downloaded bcftools v1.16" && \
-    tar -xjf bcftools-1.16.tar.bz2 && \
-    cd bcftools-1.16 && \
-    make -j4 && \
-    make install PREFIX=/soft/bcftools-1.16 && \
-    rm -rf /soft/bcftools-1.16.tar.bz2 /soft/bcftools-1.16
+# Установка samtools v1.21
+RUN wget https://github.com/samtools/samtools/releases/download/1.21/samtools-1.21.tar.bz2 && \
+    tar -xjf samtools-1.21.tar.bz2 && \
+    cd samtools-1.21 && \
+    ./configure --prefix=/soft/samtools-1.21 && \  
+    make -j$(nproc) && \
+    make install && \
+    rm -rf /samtools-1.21.tar.bz2 /samtools-1.21
+
+
+# Установка bcftools v1.18
+RUN wget https://github.com/samtools/bcftools/releases/download/1.18/bcftools-1.18.tar.bz2 && \
+    tar -xjf bcftools-1.18.tar.bz2 && \
+    cd bcftools-1.18 && \
+    ./configure --prefix=/soft/bcftools-1.18 && \ 
+    make -j$(nproc) && \
+    make install && \
+    rm -rf /bcftools-1.18.tar.bz2 /bcftools-1.18
+
 
 # Установка vcftools v0.1.16
 RUN wget https://github.com/vcftools/vcftools/releases/download/v0.1.16/vcftools-0.1.16.tar.gz && \
-    echo "Downloaded vcftools v0.1.16" && \
     tar -xzf vcftools-0.1.16.tar.gz && \
     cd vcftools-0.1.16 && \
     ./autogen.sh && \
-    ./configure && \
-    make -j4 && \
-    make install PREFIX=/soft/vcftools-0.1.16 && \
-    rm -rf /soft/vcftools-0.1.16.tar.gz /soft/vcftools-0.1.16
+    ./configure --prefix=/soft/vcftools-0.1.16 && \ 
+    make -j$(nproc) && \
+    make install && \
+    rm -rf /vcftools-0.1.16.tar.gz /vcftools-0.1.16
 
-# Копирование Python скрипта в контейнер
 COPY ./convert_format.py /soft/convert_format.py
 
-# Установка зависимостей Python (если есть файл requirements.txt)
-COPY ./requirements.txt /soft/requirements.txt
-RUN pip3 install --no-cache-dir -r /soft/requirements.txt
-
-# Очистка ненужных файлов
 RUN rm -rf /var/lib/apt/lists/*
 
-# Установка переменных окружения
-ENV PATH="$PATH:/soft/libdeflate-1.18/bin:/soft/samtools-1.16.1/bin:/soft/bcftools-1.16/bin:/soft/vcftools-0.1.16/bin"
+ENV PATH="/soft/libdeflate-1.23/bin:/soft/samtools-1.21/bin:/soft/bcftools-1.18/bin:/soft/vcftools-0.1.16/bin:$PATH"
 
-# Установка рабочей директории
+
+ENV SAMTOOLS="/soft/samtools-1.21/bin/samtools"
+ENV BCFTOOLS="/soft/bcftools-1.18/bin/bcftools"
+ENV VCFTOOLS="/soft/vcftools-0.1.16/bin/vcftools"
 WORKDIR /soft
-
+CMD ["bash"]

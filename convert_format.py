@@ -3,6 +3,12 @@ import os
 import sys
 import logging
 import time
+import pysam
+import pandas as pd
+
+REFERENCE_GENOME_DIR = os.getenv(
+    "REFERENCE_GENOME_DIR", "./ref/GRCh38.d1.vd1_mainChr/sepChrs/"
+)
 
 log_filename = "convert_format.log"
 logging.basicConfig(
@@ -26,7 +32,32 @@ def parse_arguments():
 
 
 def detect_ref_alt(chrom, pos, allele1, allele2):
-    return allele1, allele2  # надо добавить, тут я считаю что allele1 = ref
+    if not chrom.startswith("chr"):
+        chrom = f"chr{chrom}"
+
+    fasta_file = os.path.join(REFERENCE_GENOME_DIR, f"{chrom}.fa")
+    fai_file = fasta_file + ".fai"
+
+    if not os.path.exists(fasta_file):
+        raise FileNotFoundError(
+            f"FASTA-файл для хромосомы {chrom} не найден: {fasta_file}"
+        )
+    if not os.path.exists(fai_file):
+        raise FileNotFoundError(
+            f"Индексный файл для хромосомы {chrom} не найден: {fai_file}"
+        )
+
+    fasta = pysam.FastaFile(fasta_file)
+    ref_allele = fasta.fetch(chrom, pos - 1, pos).upper()
+
+    if allele1.upper() == ref_allele:
+        return allele1, allele2
+    elif allele2.upper() == ref_allele:
+        return allele2, allele1
+    else:
+        raise ValueError(
+            f"Несовпадение аллелей: {allele1}, {allele2} != {ref_allele} на позиции {chrom}:{pos}"
+        )
 
 
 def process_file(input_file, output_file):
@@ -35,32 +66,36 @@ def process_file(input_file, output_file):
         sys.exit(1)
 
     try:
-        with open(input_file, "r", encoding="utf-8") as infile, open(
-            output_file, "w", encoding="utf-8"
-        ) as outfile:
-            header = infile.readline().strip().split("\t")
-            expected_header = ["#CHROM", "POS", "ID", "allele1", "allele2"]
+        df = pd.read_csv(
+            input_file,
+            sep="\t",
+            comment="#",
+            header=None,
+            names=["CHROM", "POS", "ID", "allele1", "allele2"],
+        )
 
-            if header != expected_header:
-                logging.error("Неверный формат заголовка входного файла.")
-                sys.exit(1)
+        results = []
+        for _, row in df.iterrows():
+            chrom = "chr" + row["CHROM"].replace("chr", "")
+            pos = row["POS"]
+            snp_id = row["ID"]
+            allele1 = row["allele1"]
+            allele2 = row["allele2"]
 
-            outfile.write("#CHROM\tPOS\tID\tREF\tALT\n")
-
-            for line in infile:
-                line = line.strip()
-                if not line:
-                    continue
-                columns = line.split("\t")
-                if len(columns) != 5:
-                    logging.warning(
-                        f"Пропуск строки из-за неверного формата: {line}"
-                    )
-                    continue
-
-                chrom, pos, snp_id, allele1, allele2 = columns
+            try:
                 ref, alt = detect_ref_alt(chrom, pos, allele1, allele2)
-                outfile.write(f"{chrom}\t{pos}\t{snp_id}\t{ref}\t{alt}\n")
+                results.append((chrom, pos, snp_id, ref, alt))
+            except ValueError as e:
+                logging.warning(
+                    f"Ошибка при обработке строки: {row.to_dict()}. Ошибка: {e}"
+                )
+                continue
+
+        result_df = pd.DataFrame(
+            results, columns=["CHROM", "POS", "ID", "REF", "ALT"]
+        )
+
+        result_df.to_csv(output_file, sep="\t", index=False)
 
         logging.info(
             f"Обработка завершена. Результат сохранен в {output_file}"
